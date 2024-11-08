@@ -1,7 +1,7 @@
 name: Fetch Weather Data and Extract Temperature
 
 on:
-  workflow_dispatch:  # Gör att workflowen kan triggas manuellt
+  workflow_dispatch:
 
 env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
