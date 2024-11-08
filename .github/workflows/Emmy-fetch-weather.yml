@@ -1,0 +1,32 @@
+name: Fetch Weather Data and Extract Temperature
+
+on:
+  workflow_dispatch:  # Gör att workflowen kan triggas manuellt
+
+env:
+  SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+
+jobs:
+  fetch_and_extract_temperature:
+    name: Fetch Weather Data and Extract Temperature
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Fetch data from SMHI API
+        env:
+          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+        run: |
+          API_URL="https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json"
+          curl -s "$API_URL" -o weather_data.json
+          echo "Fetched data from SMHI API."
+
+      - name: Display fetched data
+        run: cat weather_data.json
+
+      - name: Extract temperature from weather data
+        run: |
+          TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == "t").values[0]' weather_data.json)
+          echo "Extracted Temperature: $TEMP"
