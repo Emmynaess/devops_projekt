@@ -1,20 +1,22 @@
-name: Fetch Weather Data and Extract 24-Hour Temperature
+name: Fetch Weather Data and Run Tests
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # triggas manuellt under test
 
 env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
 
 jobs:
-  fetch_and_extract_temperature:
-    name: Fetch Weather Data and Extract 24-Hour Temperature
+  fetch_and_test_data:
+    name: Fetch Weather Data
     runs-on: ubuntu-latest
 
     steps:
+      # Check out the repository code
       - name: Check out code
         uses: actions/checkout@v2
-        
+
+      # Fetch data from SMHI API
       - name: Fetch data from SMHI API
         env:
           SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
@@ -23,12 +25,45 @@ jobs:
           curl -s "$API_URL" -o weather_data.json
           echo "Fetched data from SMHI API."
 
+      # Integration Test: Verify that API response is valid
+      - name: Integration Test - Verify API Response
+        run: |
+          if jq '.timeSeries' weather_data.json >/dev/null; then
+            echo "Integration Test Passed: API fungerar korrekt."
+          else
+            echo "Integration Test Failed: API svarar inte som förväntat."
+            exit 1  # Om testet misslyckas, avbryts pipelinen
+          fi
+
       - name: Display fetched data
         run: cat weather_data.json
 
+      # Extract temperature for the last 24 hours
       - name: Extract 24-Hour Temperature from weather data
         run: |
+          # Extrahera temperaturen för de senaste 24 timmarna
           jq '.timeSeries[0:24] | .[].parameters[] | select(.name == "t").values[0]' weather_data.json > temperatures.txt
           
           echo "Extracted Temperatures for the last 24 hours:"
           cat temperatures.txt
+
+      # Unit Test: Verify data processing
+      - name: Unit Test - Verify Temperature Data
+        run: |
+          # Kontrollera att temperaturen innehåller 24 värden och att alla är giltiga nummer
+          TEMP_COUNT=$(cat temperatures.txt | wc -l)
+          if [ "$TEMP_COUNT" -eq 24 ]; then
+            echo "Unit Test Passed: 24 temperaturvärden har extraherats."
+          else
+            echo "Unit Test Failed: Förväntade 24 temperaturvärden, men fick $TEMP_COUNT."
+            exit 1
+          fi
+
+          # Kontrollera att varje värde är ett giltigt tal
+          INVALID_COUNT=$(grep -cv '^[0-9]*\(\.[0-9]*\)\?$' temperatures.txt)
+          if [ "$INVALID_COUNT" -eq 0 ]; then
+            echo "Unit Test Passed: Alla extraherade värden är giltiga nummer."
+          else
+            echo "Unit Test Failed: $INVALID_COUNT värden är ogiltiga."
+            exit 1
+          fi
