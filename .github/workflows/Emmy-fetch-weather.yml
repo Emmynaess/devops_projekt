@@ -1,20 +1,20 @@
-name: Fetch Weather Data and Extract Temperature
+name: Fetch Weather Data and Extract 24-Hour Temperature
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Gör att workflowen kan triggas manuellt
 
 env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
 
 jobs:
   fetch_and_extract_temperature:
-    name: Fetch Weather Data and Extract Temperature
+    name: Fetch Weather Data and Extract 24-Hour Temperature
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-
+        
       - name: Fetch data from SMHI API
         env:
           SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
@@ -26,7 +26,9 @@ jobs:
       - name: Display fetched data
         run: cat weather_data.json
 
-      - name: Extract temperature from weather data
+      - name: Extract 24-Hour Temperature from weather data
         run: |
-          TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == "t").values[0]' weather_data.json)
-          echo "Extracted Temperature: $TEMP"
+          jq '.timeSeries[0:24] | .[].parameters[] | select(.name == "t").values[0]' weather_data.json > temperatures.txt
+          
+          echo "Extracted Temperatures for the last 24 hours:"
+          cat temperatures.txt
