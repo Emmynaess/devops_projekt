@@ -10,7 +10,7 @@ on:
 
 env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
-  DOCKER_IMAGE_NAME: emmynaessrieback/flask-app
+  DOCKER_IMAGE_NAME: emmynaessrieback/devops_project_emmy
 
 jobs:
   fetch_and_extract_temperature:
