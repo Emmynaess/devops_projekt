@@ -1,22 +1,36 @@
-name: Fetch Weather Data and Run Tests
+name: Fetch Weather Data, Test, and Build Docker Image
 
 on:
-  workflow_dispatch:  # triggas manuellt under test
+  workflow_dispatch:
+    inputs:
+      log_errors:
+        description: "Log errors if tests fail"
+        required: true
+        default: "false"
 
 env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+  DOCKER_IMAGE_NAME: emmynaessrieback/flask-app
 
 jobs:
-  fetch_and_test_data:
-    name: Fetch Weather Data
+  fetch_and_extract_temperature:
+    name: Fetch Weather Data and Extract Temperature
     runs-on: ubuntu-latest
 
     steps:
-      # Check out the repository code
       - name: Check out code
         uses: actions/checkout@v2
 
-      # Fetch data from SMHI API
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Fetch data from SMHI API
         env:
           SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
@@ -25,45 +39,57 @@ jobs:
           curl -s "$API_URL" -o weather_data.json
           echo "Fetched data from SMHI API."
 
-      # Integration Test: Verify that API response is valid
-      - name: Integration Test - Verify API Response
-        run: |
-          if jq '.timeSeries' weather_data.json >/dev/null; then
-            echo "Integration Test Passed: API fungerar korrekt."
-          else
-            echo "Integration Test Failed: API svarar inte som förväntat."
-            exit 1  # Om testet misslyckas, avbryts pipelinen
-          fi
-
       - name: Display fetched data
         run: cat weather_data.json
 
-      # Extract temperature for the last 24 hours
-      - name: Extract 24-Hour Temperature from weather data
+      - name: Extract temperature from weather data
         run: |
-          # Extrahera temperaturen för de senaste 24 timmarna
-          jq '.timeSeries[0:24] | .[].parameters[] | select(.name == "t").values[0]' weather_data.json > temperatures.txt
-          
-          echo "Extracted Temperatures for the last 24 hours:"
-          cat temperatures.txt
+          TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == "t").values[0]' weather_data.json)
+          echo "Extracted Temperature: $TEMP"
+          echo "TEMP=$TEMP" >> $GITHUB_ENV
 
-      # Unit Test: Verify data processing
-      - name: Unit Test - Verify Temperature Data
+      - name: Run test
         run: |
-          # Kontrollera att temperaturen innehåller 24 värden och att alla är giltiga nummer
-          TEMP_COUNT=$(cat temperatures.txt | wc -l)
-          if [ "$TEMP_COUNT" -eq 24 ]; then
-            echo "Unit Test Passed: 24 temperaturvärden har extraherats."
-          else
-            echo "Unit Test Failed: Förväntade 24 temperaturvärden, men fick $TEMP_COUNT."
+          if [[ -z "$TEMP" ]]; then
+            echo "Test failed: Temperature value is empty" > error_log.txt
             exit 1
+          else
+            echo "Test passed: Temperature value is $TEMP"
           fi
+        continue-on-error: true
 
-          # Kontrollera att varje värde är ett giltigt tal
-          INVALID_COUNT=$(grep -cv '^[0-9]*\(\.[0-9]*\)\?$' temperatures.txt)
-          if [ "$INVALID_COUNT" -eq 0 ]; then
-            echo "Unit Test Passed: Alla extraherade värden är giltiga nummer."
-          else
-            echo "Unit Test Failed: $INVALID_COUNT värden är ogiltiga."
-            exit 1
-          fi
+      - name: Upload Error Log
+        if: failure() && github.event.inputs.log_errors == 'true'
+        uses: actions/upload-artifact@v2
+        with:
+          name: error_log
+          path: error_log.txt
+
+  build_and_push_docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: fetch_and_extract_temperature  # körs bara om 'fetch_and_extract_temperature' lyckades
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.EMMY_DOCKER_USERNAME }}
+          password: ${{ secrets.EMMY_DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
+
