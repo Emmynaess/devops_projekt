@@ -21,11 +21,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/smhi-weather-app:latest .
+          docker build -t ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest .
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/smhi-weather-app:latest
+          docker push ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest
 
   deploy_to_azure:
     runs-on: ubuntu-latest
@@ -35,6 +35,6 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: ${{ secrets.AZURE_APP_NAME }}
-        publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
-        images: ${{ secrets.DOCKER_USERNAME }}/smhi-weather-app:latest
+        app-name: ${{ secrets.AZURE_NAME }}
+        publish-profile: ${{ secrets.AZURE_PASSWORD }}
+        images: ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest
