@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest .
+          docker build -t ${{ secrets.LINA_DOCKER_USERNAME }}/SMHI_API_KEY:latest .
 
       - name: Push Docker image
         run: |
