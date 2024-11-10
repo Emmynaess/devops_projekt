@@ -25,7 +25,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest
+          docker push ${{ secrets.LINA_DOCKER_USERNAME }}/SMHI_API_KEY:latest
 
   deploy_to_azure:
     runs-on: ubuntu-latest
@@ -37,4 +37,4 @@ jobs:
       with:
         app-name: ${{ secrets.AZURE_NAME }}
         publish-profile: ${{ secrets.AZURE_PASSWORD }}
-        images: ${{ secrets.LINA_DOCKER_USERNAME }}/smhi-weather-app:latest
+        images: ${{ secrets.LINA_DOCKER_USERNAME }}/SMHI_API_KEY:latest
