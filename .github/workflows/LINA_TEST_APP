@@ -1,0 +1,40 @@
+name: Test Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_errors:
+        description: 'Log errors if tests fail'
+        required: true
+        default: false
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    env:
+      SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run the application
+      id: test_app
+      run: |
+        python app.py > test-output.log
+        echo $? > result.txt
+
+    - name: Upload error logs
+      if: ${{ github.event.inputs.log_errors == 'true' && steps.test_app.outcome != 'success' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: error-logs
+        path: test-output.log
