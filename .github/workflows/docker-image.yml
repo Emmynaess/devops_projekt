@@ -38,6 +38,6 @@ jobs:
       - name: build and push docker image to registry
         uses: docker/build-push-action@v5
         with:
-          context: DockerFileFolder/
+          context: devops_projekt/
           push: true
           tags: thomaslaene/weather-app:latest
