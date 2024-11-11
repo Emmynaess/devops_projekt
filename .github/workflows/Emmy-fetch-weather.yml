@@ -1,4 +1,4 @@
-name: Fetch Weather Data, Test, and Build Docker Image
+name: Fetch Weather Data, Test and Build Docker Image
 
 on:
   workflow_dispatch:
