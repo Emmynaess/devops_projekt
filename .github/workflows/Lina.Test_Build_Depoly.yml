@@ -9,7 +9,7 @@ on:
         default: false
 env:
       SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
-      DOCKER_IMAGE_NAME: Linayonan/smhi_lina  
+      DOCKER_IMAGE_NAME: Linayonan/Dockerfil_lina  
       
 jobs:
   fetch_and_extract_temperature: 
