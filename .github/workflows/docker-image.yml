@@ -35,10 +35,9 @@ jobs:
           username: ${{ secrets.THOMAS_DOCKER_USERNAME }}
           password: ${{ secrets.THOMAS_DOCKER_PASSWORD }}
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v3
+      - name: build and push docker image to registry
+        uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: DockerFileFolder/
           push: true
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
+          tags: thomaslaene/weather-app:latest
