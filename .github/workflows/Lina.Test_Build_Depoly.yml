@@ -1,0 +1,100 @@
+name: Test Build and Depoly Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_errors:
+        description: 'Log errors if tests fail'
+        required: true
+        default: false
+env:
+      SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+      DOCKER_IMAGE_NAME: Linayonan/smhi_lina  
+      
+jobs:
+  fetch_and_extract_temperature: 
+    name: Fetch Weather Data and Extract Temperature
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Fetch data from SMHI API
+      env:
+          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+      run: |
+          API_URL="https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json"
+          curl -s "$API_URL" -o weather_data.json 
+          echo "Fetched data from SMHI API."
+
+    - name: Display fetched data
+      run: cat weather_data.json
+
+    - name: Extract temperature from weather data
+      run: |
+        TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == t").values[0]' weather_data.json)
+        echo "Extracted Temperature: $TEMP"
+        echo "TEMP=$TEMP" >> $GITHUB_ENV
+
+    - name: Run the test
+      id: test_app
+      run: |
+        python app.py > test-output.log 
+       ##echo $? > result.txt
+
+    - name: Upload error logs
+      if: ${{ github.event.inputs.log_errors == 'true' && failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: error-logs
+        path: test-output.log
+  
+  build_docker_image:
+      name: Build Docker image
+      runs-on: ubuntu-latest
+      needs: fetch_and_extract_temperature
+
+      steps:
+      - name: Checkout Code
+        uses: actions/checkout@v
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+        
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.LINA_DOCKER_USERNAME }}
+          password: ${{ secrets.LINA_DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: |
+           docker build -t $DOCKER_IMAGE_NAME:latest .
+
+      - name: Push Docker image
+        run: |
+           docker push $DOCKER_IMAGE_NAME:latest
+
+
+  deploy_to_azure:
+    runs-on: ubuntu-latest
+    needs: build_docker_image
+
+    steps:
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ secrets.AZURE_NAME }}
+        publish-profile: ${{ secrets.AZURE_PASSWORD }}
+        images: ${{ secrets.LINA_DOCKER_USERNAME }}/SMHI_API_KEY_LINA:latest
