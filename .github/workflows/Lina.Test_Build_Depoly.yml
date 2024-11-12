@@ -8,7 +8,7 @@ on:
         required: true
         default: false
 env:
-      SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+      SMHI_API_KEY: ${{ secrets.SMHI_API_KEY_LINA }}
       DOCKER_IMAGE_NAME: linayonan/Dockerfil_lina  
       
 jobs:
@@ -32,7 +32,7 @@ jobs:
 
     - name: Fetch data from SMHI API
       env:
-          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY_LINA }}
       run: |
           API_URL="https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json"
           curl -s "$API_URL" -o weather_data.json 
@@ -43,14 +43,22 @@ jobs:
 
     - name: Extract temperature from weather data
       run: |
-        TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == t").values[0]' weather_data.json)
-        echo "Extracted Temperature: $TEMP"
-        echo "TEMP=$TEMP" >> $GITHUB_ENV
+        # Use jq to extract the temperature value from the JSON file
+        TEMP=$(jq -r '.timeSeries[0].parameters[] | select(.name == "t") | .values[0]' weather_data.json)
+
+        # Check if TEMP is not empty and then log and set the environment variable
+        if [ -n "$TEMP" ]; then
+          echo "Extracted Temperature: $TEMP"
+          echo "TEMP=$TEMP" >> $GITHUB_ENV
+        else
+          echo "Error: Temperature not found" >&2
+          exit 1
+        fi
 
     - name: Run the test
       id: test_app
       run: |
-        python app.py > test-output.log 
+        python Linaapp.py > test-output.log 
     
 
     - name: Upload error logs
