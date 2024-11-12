@@ -44,7 +44,7 @@ jobs:
     - name: Extract temperature from weather data
       run: |
         # Use jq to extract the temperature value from the JSON file
-        TEMP=$(jq -r '.timeSeries[0].parameters[] | select(.name == "t") | .values[0]' weather_data.json)
+        TEMP=$(jq '.timeSeries[0].parameters[] | select(.name == "t") .values[0]' weather_data.json)
 
         # Check if TEMP is not empty and then log and set the environment variable
         if [ -n "$TEMP" ]; then
