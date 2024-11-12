@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, jsonify
 import requests
 
@@ -8,7 +7,6 @@ app = Flask(__name__)
 def home():
     return "Hello, app is running in Docker!"
 
-# SMHI API URL
 API_URL = "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json"
 
 def fetch_temperature():
