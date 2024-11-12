@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: thomas-pipeline
 
 on:
   workflow_dispatch:
@@ -12,13 +12,38 @@ env:
   SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
   DOCKER_IMAGE_NAME: thomaslaene/weather-app
 
-    
-
 jobs:
+  # Step 1: Run tests
+  run_tests:
+    name: Run Unit and Integration Tests
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run Unit Tests
+        run: pytest tests/unit
+
+      - name: Run Integration Tests
+        run: pytest tests/integration
+
+  # Step 2: Build and push Docker image if tests pass
   build_and_push_docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    needs: run_tests  # This ensures that this job only runs if `run_tests` passes
 
     steps:
       - name: Check out code
@@ -38,7 +63,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-         context: .
-         file: ./dockerfile
-         push: true
-         tags: thomaslaene/weather-app:latest
+          context: .
+          file: ./dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
