@@ -12,7 +12,6 @@ def fetch_weather_data():
         data = response.json()
         weather_data = []
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
         for time_series in data['timeSeries']:
             timestamp_str = time_series['validTime'].replace('T', ' ').replace('Z', '')
             timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
@@ -22,6 +21,7 @@ def fetch_weather_data():
                 datum = timestamp_str.split()[0]
                 hour = int(timestamp_str.split()[1][:2])
                 precipitation = next(param['values'][0] for param in time_series['parameters'] if param['name'] == 'pcat')
+                temperature = next(param['values'][0] for param in time_series['parameters'] if param['name'] == 't')
                 provider = 'SMHI'
                 precipitation = "Yes" if precipitation > 0 else "No"
 
@@ -30,11 +30,13 @@ def fetch_weather_data():
                     'Datum': datum,
                     'Hour': hour,
                     'Precipitation': precipitation,
+                    'Temperature': temperature,
                     'Provider': provider,
                 })
         return weather_data
     else:
         return []
+
 
 @app.route('/weather')
 def display_weather():
