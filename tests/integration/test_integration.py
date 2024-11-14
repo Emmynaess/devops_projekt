@@ -9,7 +9,5 @@ def client():
 
 def test_weather_route(client):
     response = client.get('/')
-    
     assert response.status_code == 200
-    
     assert b'Provider' in response.data
