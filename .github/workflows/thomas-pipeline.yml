@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.THOMAS_DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./dockerfile
@@ -89,7 +89,7 @@ jobs:
         run: docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
 
       - name: Set up Google Cloud authentication
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
          credentials_json: ${{ secrets.GCP_KEY_FILE }}
 
