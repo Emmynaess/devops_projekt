@@ -38,7 +38,7 @@ def fetch_weather_data():
         return []
 
 
-@app.route('/weather')
+@app.route('/')
 def display_weather():
     weather_data = fetch_weather_data()
     return render_template('weather.html', weather_data=weather_data)
