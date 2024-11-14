@@ -95,7 +95,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_KEY_FILE }}
 
       - name: Authenticate Docker with Google Cloud
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker gcr.io
 
       - name: Tag and push to Google Container Registry
         run: |
@@ -106,7 +106,7 @@ jobs:
         run: |
           gcloud run deploy weather-app \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/weather-app:latest \
-            --region europe-west1 \
+            --region us-central1 \
             --platform managed \
             --allow-unauthenticated
 
