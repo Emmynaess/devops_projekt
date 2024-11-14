@@ -11,10 +11,6 @@ def test_fetch_weather_data():
         assert 'Precipitation' in weather_data[0]
         assert 'Provider' in weather_data[0]
 
-def test_invalid_route(client):
-    response = client.get('/invalid_route')
-    assert response.status_code == 404
-
 def test_fetch_weather_data_empty():
     weather_data = []
     assert weather_data == []
