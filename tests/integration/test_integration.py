@@ -8,7 +8,7 @@ def client():
         yield client
 
 def test_weather_route(client):
-    response = client.get('/weather')
+    response = client.get('/')
     
     assert response.status_code == 200
     
