@@ -88,11 +88,10 @@ jobs:
       - name: Pull the Docker image from Docker Hub
         run: docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Set up Google Cloud authentication
+        uses: google-github-actions/auth@v1
         with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_KEY_FILE }}
+         credentials_json: ${{ secrets.GCP_KEY_FILE }}
 
       - name: Authenticate Docker with Google Cloud
         run: gcloud auth configure-docker gcr.io
