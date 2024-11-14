@@ -67,3 +67,26 @@ jobs:
           file: ./dockerfile
           push: true
           tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_KEY_FILE }}
+      
+      - name: Configure Docker to use gcloud as a credential helper
+        run: |
+         gcloud auth configure-docker
+
+      - name: Tag and push to Google Container Registry
+        run: |
+         docker tag ${{ secrets.THOMAS_DOCKER_USERNAME }}//weather-app:${{ github.sha }} gcr.io/${{ secrets.GCP_PROJECT_ID }}/weather-app:${{ github.sha }}
+         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/weather-app:${{ github.sha }}
+
+      - name: Deploy to Google Cloud Run
+        run: |
+         gcloud run deploy weather-app \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/weather-app:${{ github.sha }} \
+          --region europe-west1 \
+          --platform managed \
+          --allow-unauthenticated
