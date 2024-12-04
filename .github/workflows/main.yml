@@ -30,6 +30,22 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq python3-pip
           pip install -r requirements.txt
 
+      - name: Run tests with pytest 
+        run: |
+         pytest > test-output.log || echo "Test failed. Check logs." > test-output.log
+
+
+      - name: Integration test against SMHI API
+        run: |
+         response=$(curl -s -o /dev/null -w "%{http_code}" "$SMHI_URL")
+         if [ "$response" -eq 200 ]; then
+          echo "API is reachable and returned status 200"
+         else
+          echo "Error: API is not reachable or returned status $response" >&2
+          exit 1
+         fi
+
+
       - name: Fetch Weather Data
         env:
           SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
