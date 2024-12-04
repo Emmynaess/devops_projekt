@@ -37,7 +37,7 @@ jobs:
 
       - name: Integration test against SMHI API
         run: |
-         response=$(curl -s -o /dev/null -w "%{http_code}" "$SMHI_URL")
+         response=$(curl -s -o /dev/null -w "%{http_code}" "$SMHI_API_KEY")
          if [ "$response" -eq 200 ]; then
           echo "API is reachable and returned status 200"
          else
