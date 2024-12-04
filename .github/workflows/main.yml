@@ -10,6 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: linayonan/linadockerrepo
+  SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
 
 jobs:
   fetch-test-data:
@@ -36,16 +37,18 @@ jobs:
 
 
       - name: Integration test against SMHI API
-         echo "SMHI_API_KEY is:$SMHI_API_KEY"
+        env:
+          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+        run: |
+          echo "SMHI_API_KEY is: $SMHI_API_KEY"
           response=$(curl -s -o /dev/null -w "%{http_code}" "$SMHI_API_KEY")
           if [ "$response" -eq 200 ]; then
             echo "API is reachable and returned status 200"
           else
-            echo "Error:API is not reachable or returned status $response"
-            curl -v "$SMHI_API_KEY" 
+            echo "Error: API is not reachable or returned status $response"
+            curl -v "$SMHI_API_KEY"
             exit 1
           fi
-
 
       - name: Fetch Weather Data
         env:
