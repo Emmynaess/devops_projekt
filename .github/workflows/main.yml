@@ -1,0 +1,97 @@
+name: Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_errors:
+        description: 'Generate logg errors'
+        required: true
+        default: 'true'
+
+env:
+  DOCKER_IMAGE_NAME: linayonan/linadockerrepo
+
+jobs:
+  fetch-test-data:
+    name: Fetch and Test Data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          echo "Installing dependencies..."
+          sudo apt-get update && sudo apt-get install -y jq python3-pip
+          pip install -r requirements.txt
+
+      - name: Fetch Weather Data
+        env:
+          SMHI_API_KEY: ${{ secrets.SMHI_API_KEY }}
+        run: |
+          echo "Fetching weather data from SMHI API..."
+          curl -s "$SMHI_API_KEY" -o weather.json
+
+      - name: Save Weather Data
+        uses: actions/upload-artifact@v3
+        with:
+          name: weather-data
+          path: weather.json
+
+      - name: Validate Weather Data
+        run: |
+          echo "Validating weather data..."
+          TEMPERATURE=$(jq -r '.timeSeries[0].parameters[] | select(.name=="t") | .values[0]' weather.json)
+          if [ -z "$TEMPERATURE" ]; then
+            echo "Error: Temperature data not found."
+            exit 1
+          fi
+          echo "Temperature successfully fetched: ${TEMPERATURE}C"
+
+      - name: Upload Error Logs
+        if: ${{ failure() && inputs.log_errors == 'true' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: error-logs
+          path: weather.json
+
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: fetch-test-data
+    if: ${{ needs.fetch-test-data.result == 'success' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Weather Data 
+        uses: actions/download-artifact@v3
+        with:
+          name: weather-data
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.LINA_DOCKER_USERNAME }}
+          password: ${{ secrets.LINA_DOCKER_PASSWORD }}
+
+      - name: Generate Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
